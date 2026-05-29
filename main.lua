@@ -25,5 +25,6 @@ function love.mousemoved(x, y, dx, dy, istouch)
 end
 
 function love.wheelmoved(x, y)
-    c.zoom = math.max(0.25, math.min(c.zoom + y * 2e-2, 4))
+    c.zoom = math.max(0.33, math.min(c.zoom * (2^(y * 3e-2)), 3))
+    print(c.zoom)
 end
