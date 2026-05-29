@@ -31,22 +31,20 @@ local TILE_CHECKER = {
 local Chunk = {}
 Chunk.__index = Chunk
 
+---@param atlas love.Image
+---@param quads table<Tile, love.Quad>
 ---@param size number?
-function Chunk.new(size)
+function Chunk.new(atlas, quads, size)
     size = size or 64
----@diagnostic disable-next-line: undefined-field
-    local grid = table.new(size, 0) ---@type Tile[]
-    local total = size * size
-    for i = 1, total do
-        grid[i] = "empty"
-    end
+    local _, _, tile_width, tile_height = quads.empty:getViewport()
 
     ---@class Chunk
-    local ret = {
+    local self = {
         size = size,
-        grid = grid,
-        counts = {
-            empty = total,
+        quads = quads,
+        grid = table.new(size, 0), ---@type Tile[]
+        counts = { ---@type table<Tile, number>
+            empty = size * size,
             road = 0,
             factory = 0,
             forest = 0,
@@ -56,9 +54,21 @@ function Chunk.new(size)
             tech_bridge = 0,
             house = 0,
             grand_national_assembly = 0,
-        } ---@type table<Tile, number>
+        },
+        batch = love.graphics.newSpriteBatch(atlas),
+        batch_indices = table.new(size, 0), ---@type number[]
+        tile_width = tile_width, ---@type integer
+        tile_height = tile_height, ---@type integer
     }
-    return setmetatable(ret, Chunk)
+
+    for y = 1, size do
+        for x = 1, size do
+            local index = flatten(x, y, self.size)
+            self.grid[index] = "empty"
+            self.batch_indices[index] = self.batch:add(quads.empty, tile_width * (x - 1), tile_height * (y - 1))
+        end
+    end
+    return setmetatable(self, Chunk)
 end
 
 ---@param x integer
@@ -75,6 +85,12 @@ function Chunk:place(x, y, new_value)
     self.counts[old_value] = self.counts[old_value] - 1
     self.counts[new_value] = self.counts[new_value] + 1
     self.grid[index] = new_value
+    self.batch:set(
+        self.batch_indices[index],
+        self.quads[new_value],
+        self.tile_width * (x - 1),
+        self.tile_height * (y - 1)
+    )
 
     return old_value
 end

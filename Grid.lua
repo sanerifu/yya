@@ -75,6 +75,7 @@ function Grid.new(atlas, chunk_size)
 
     ---@class Grid
     local ret = {
+        atlas = atlas,
         chunk_size = chunk_size,
         chunks = {}, ---@type Chunk[][]
         quads = {
@@ -111,7 +112,7 @@ function Grid:getChunk(x, y)
         self.chunks[y] = {}
     end
     if not self.chunks[y][x] then
-        self.chunks[y][x] = Chunk.new(self.chunk_size)
+        self.chunks[y][x] = Chunk.new(self.atlas, self.quads, self.chunk_size)
     end
     return self.chunks[y][x]
 end
@@ -128,6 +129,10 @@ function Grid:place(x, y, new_value)
     local inner_x = x % self.chunk_size + 1
     local inner_y = y % self.chunk_size + 1
     return self:getChunk(chunk_x, chunk_y):place(inner_x, inner_y, new_value)
+end
+
+function Grid:draw()
+    love.graphics.draw(self.chunks[1][1].batch)
 end
 
 return Grid
