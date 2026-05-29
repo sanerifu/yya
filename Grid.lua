@@ -159,21 +159,25 @@ function Grid:draw(zoom, top_left_x, top_left_y, bottom_right_x, bottom_right_y)
     local bottom_right_chunk_x, bottom_right_chunk_y =
         math.ceil(bottom_right_tile_x / self.chunk_size), math.ceil(bottom_right_tile_y / self.chunk_size)
 
+    local size = math.floor(self.scaled_chunk_size * zoom)
+    local offset_x = math.floor(top_left_x * zoom)
+    local offset_y = math.floor(top_left_y * zoom)
+
     for y = top_left_chunk_y, bottom_right_chunk_y do
         for x = top_left_chunk_x, bottom_right_chunk_x do
             if self.chunks[y] and self.chunks[y][x] then
                 love.graphics.draw(
                     self.chunks[y][x].batch,
-                    self.scaled_chunk_size * zoom * (x - 1) - top_left_x * zoom,
-                    self.scaled_chunk_size * zoom * (y - 1) - top_left_y * zoom,
+                    size * (x - 1) - offset_x,
+                    size * (y - 1) - offset_y,
                     0,
                     self.scale * zoom
                 )
             else
                 love.graphics.draw(
                     self.empty_chunk.batch,
-                    self.scaled_chunk_size * zoom * (x - 1) - top_left_x * zoom,
-                    self.scaled_chunk_size * zoom * (y - 1) - top_left_y * zoom,
+                    size * (x - 1) - offset_x,
+                    size * (y - 1) - offset_y,
                     0,
                     self.scale * zoom
                 )
