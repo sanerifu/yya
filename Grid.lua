@@ -15,30 +15,33 @@ local CONFIG = {
     }, ---@type table<Tile, integer>
 }
 
+local ATLAS_WIDTH = 16
+local ATLAS_HEIGHT = 16
+
 local TILE_OFFSETS = {
     x = {
-        empty = 0 / 16,
-        road = 1 / 16,
-        factory = 2 / 16,
-        forest = 3 / 16,
-        anitkabir = 4 / 16,
-        atakule = 5 / 16,
-        cso = 6 / 16,
-        tech_bridge = 7 / 16,
-        house = 8 / 16,
-        grand_national_assembly = 9 / 16,
+        empty = 0 / ATLAS_WIDTH,
+        road = 1 / ATLAS_WIDTH,
+        factory = 2 / ATLAS_WIDTH,
+        forest = 3 / ATLAS_WIDTH,
+        anitkabir = 4 / ATLAS_WIDTH,
+        atakule = 5 / ATLAS_WIDTH,
+        cso = 6 / ATLAS_WIDTH,
+        tech_bridge = 7 / ATLAS_WIDTH,
+        house = 8 / ATLAS_WIDTH,
+        grand_national_assembly = 9 / ATLAS_WIDTH,
     },
     y = {
-        empty = 0 / 16,
-        road = 0 / 16,
-        factory = 0 / 16,
-        forest = 0 / 16,
-        anitkabir = 0 / 16,
-        atakule = 0 / 16,
-        cso = 0 / 16,
-        tech_bridge = 0 / 16,
-        house = 0 / 16,
-        grand_national_assembly = 0 / 16,
+        empty = 0 / ATLAS_HEIGHT,
+        road = 0 / ATLAS_HEIGHT,
+        factory = 0 / ATLAS_HEIGHT,
+        forest = 0 / ATLAS_HEIGHT,
+        anitkabir = 0 / ATLAS_HEIGHT,
+        atakule = 0 / ATLAS_HEIGHT,
+        cso = 0 / ATLAS_HEIGHT,
+        tech_bridge = 0 / ATLAS_HEIGHT,
+        house = 0 / ATLAS_HEIGHT,
+        grand_national_assembly = 0 / ATLAS_HEIGHT,
     },
 }
 
@@ -69,27 +72,37 @@ Grid.__index = Grid
 function Grid.new(atlas, chunk_size)
     chunk_size = chunk_size or 64
     assert(chunk_size > 6, "Chunk size too small")
+    atlas:setFilter('nearest', 'nearest')
 
     local atlas_width, atlas_height = atlas:getDimensions()
-    local atlas_tile_width, atlas_tile_height = math.floor(atlas_width / 16), math.floor(atlas_height / 16)
+    local atlas_tile_width, atlas_tile_height = math.floor(atlas_width / ATLAS_WIDTH),
+        math.floor(atlas_height / ATLAS_HEIGHT)
+    local scale = 16 / atlas_tile_width
+    local aspect = atlas_tile_width / atlas_tile_height
+    local quads = { ---@type table<Tile, love.Quad>
+        empty = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'empty'),
+        road = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'road'),
+        factory = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'factory'),
+        forest = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'forest'),
+        anitkabir = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'anitkabir'),
+        atakule = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'atakule'),
+        cso = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'cso'),
+        tech_bridge = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'tech_bridge'),
+        house = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'house'),
+        grand_national_assembly = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height,
+            'grand_national_assembly'),
+    }
 
     ---@class Grid
     local ret = {
         atlas = atlas,
         chunk_size = chunk_size,
         chunks = {}, ---@type Chunk[][]
-        quads = {
-            empty = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'empty'),
-            road = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'road'),
-            factory = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'factory'),
-            forest = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'forest'),
-            anitkabir = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'anitkabir'),
-            atakule = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'atakule'),
-            cso = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'cso'),
-            tech_bridge = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'tech_bridge'),
-            house = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'house'),
-            grand_national_assembly = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'grand_national_assembly'),
-        }, ---@type table<Tile, love.Quad>
+        scale = scale,
+        chunk_width = chunk_size * scale,
+        chunk_height = chunk_size * scale / aspect,
+        empty_chunk = Chunk.new(atlas, quads, chunk_size),
+        quads = quads,
     }
 
     return setmetatable(ret, Grid)
@@ -132,7 +145,27 @@ function Grid:place(x, y, new_value)
 end
 
 function Grid:draw()
-    love.graphics.draw(self.chunks[1][1].batch)
+    for y = 1, 2 do
+        for x = 1, 2 do
+            if self.chunks[y] and self.chunks[y][x] then
+                love.graphics.draw(
+                    self.chunks[y][x].batch,
+                    self.chunk_width * (x - 1),
+                    self.chunk_height * (y - 1),
+                    0,
+                    self.scale
+                )
+            else
+                love.graphics.draw(
+                    self.empty_chunk.batch,
+                    self.chunk_width * (x - 1),
+                    self.chunk_height * (y - 1),
+                    0,
+                    self.scale
+                )
+            end
+        end
+    end
 end
 
 return Grid
