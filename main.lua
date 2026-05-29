@@ -1,6 +1,12 @@
-local Chunk = require('Chunk')
+local Grid = require('Grid')
+local inspect = require('lib.inspect')
 
-local c = Chunk.new()
+function love.load()
+    local building_atlas = love.graphics.newImage("assets/tiles.png")
+    local g = Grid.new(building_atlas)
+    g:generateStartingChunk()
+    print(inspect(g))
+end
 
 function love.draw()
     love.graphics.print("Hello, World!")
