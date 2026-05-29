@@ -62,6 +62,8 @@ local function makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_
     )
 end
 
+local TILE_SIZE = 16
+
 ---@class Grid
 local Grid = {}
 Grid.__index = Grid
@@ -75,10 +77,9 @@ function Grid.new(atlas, chunk_size)
     atlas:setFilter('nearest', 'nearest')
 
     local atlas_width, atlas_height = atlas:getDimensions()
-    local atlas_tile_width, atlas_tile_height = math.floor(atlas_width / ATLAS_WIDTH),
-        math.floor(atlas_height / ATLAS_HEIGHT)
-    local scale = 16 / atlas_tile_width
-    local aspect = atlas_tile_width / atlas_tile_height
+    local atlas_tile_width, atlas_tile_height =
+        math.floor(atlas_width / ATLAS_WIDTH), math.floor(atlas_height / ATLAS_HEIGHT)
+    local scale = TILE_SIZE / atlas_tile_width
     local quads = { ---@type table<Tile, love.Quad>
         empty = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'empty'),
         road = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'road'),
@@ -99,8 +100,7 @@ function Grid.new(atlas, chunk_size)
         chunk_size = chunk_size,
         chunks = {}, ---@type Chunk[][]
         scale = scale,
-        chunk_width = chunk_size * scale,
-        chunk_height = chunk_size * scale / aspect,
+        scaled_chunk_size = chunk_size * scale,
         empty_chunk = Chunk.new(atlas, quads, chunk_size),
         quads = quads,
     }
@@ -144,24 +144,38 @@ function Grid:place(x, y, new_value)
     return self:getChunk(chunk_x, chunk_y):place(inner_x, inner_y, new_value)
 end
 
-function Grid:draw()
-    for y = 1, 2 do
-        for x = 1, 2 do
+---@param zoom number
+---@param top_left_x integer
+---@param top_left_y integer
+---@param bottom_right_x integer
+---@param bottom_right_y integer
+function Grid:draw(zoom, top_left_x, top_left_y, bottom_right_x, bottom_right_y)
+    local top_left_tile_x, top_left_tile_y =
+        math.floor(top_left_x / TILE_SIZE), math.floor(top_left_y / TILE_SIZE)
+    local bottom_right_tile_x, bottom_right_tile_y =
+        math.ceil(bottom_right_x / TILE_SIZE), math.ceil(bottom_right_y / TILE_SIZE)
+    local top_left_chunk_x, top_left_chunk_y =
+        math.floor(top_left_tile_x / self.chunk_size), math.floor(top_left_tile_y / self.chunk_size)
+    local bottom_right_chunk_x, bottom_right_chunk_y =
+        math.ceil(bottom_right_tile_x / self.chunk_size), math.ceil(bottom_right_tile_y / self.chunk_size)
+
+    for y = top_left_chunk_y, bottom_right_chunk_y do
+        for x = top_left_chunk_x, bottom_right_chunk_x do
             if self.chunks[y] and self.chunks[y][x] then
                 love.graphics.draw(
                     self.chunks[y][x].batch,
-                    self.chunk_width * (x - 1),
-                    self.chunk_height * (y - 1),
+                    self.scaled_chunk_size * zoom * (x - 1) - top_left_x * zoom,
+                    self.scaled_chunk_size * zoom * (y - 1) - top_left_y * zoom,
                     0,
-                    self.scale
+                    self.scale * zoom
                 )
             else
                 love.graphics.draw(
                     self.empty_chunk.batch,
-                    self.chunk_width * (x - 1),
-                    self.chunk_height * (y - 1),
+                    self.scaled_chunk_size * zoom * (x - 1) - top_left_x * zoom,
+                    self.scaled_chunk_size * zoom * (y - 1) - top_left_y * zoom,
                     0,
-                    self.scale
+                    self.scale * zoom
                 )
             end
         end
