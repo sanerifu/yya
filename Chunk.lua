@@ -34,6 +34,7 @@ Chunk.__index = Chunk
 ---@param size number?
 function Chunk.new(size)
     size = size or 64
+---@diagnostic disable-next-line: undefined-field
     local grid = table.new(size, 0) ---@type Tile[]
     local total = size * size
     for i = 1, total do
