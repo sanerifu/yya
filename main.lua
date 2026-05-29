@@ -10,7 +10,6 @@ function love.load()
     g = Grid.new(building_atlas)
     c = Camera.new()
     g:generateStartingChunk()
-    print(inspect(g))
 end
 
 function love.draw()
@@ -26,5 +25,4 @@ end
 
 function love.wheelmoved(x, y)
     c.zoom = math.max(0.33, math.min(c.zoom * (2^(y * 3e-2)), 3))
-    print(c.zoom)
 end
