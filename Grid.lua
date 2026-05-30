@@ -61,10 +61,10 @@ end
 function Grid:generateStartingChunk()
     for y = 1, CONFIG.sizes.grand_national_assembly do
         for x = 1, CONFIG.sizes.grand_national_assembly do
-            self:place(x, y, "grand_national_assembly")
+            self:set(x, y, "grand_national_assembly")
         end
     end
-    self:place(math.ceil(CONFIG.sizes.grand_national_assembly / 2), CONFIG.sizes.grand_national_assembly + 1, 'road')
+    self:set(math.ceil(CONFIG.sizes.grand_national_assembly / 2), CONFIG.sizes.grand_national_assembly + 1, 'road')
 end
 
 ---@param x integer
@@ -84,7 +84,7 @@ end
 ---@param y integer
 ---@param new_value Tile
 ---@return Tile old_value
-function Grid:place(x, y, new_value)
+function Grid:set(x, y, new_value)
     x = x - 1
     y = y - 1
     local chunk_x = math.floor(x / self.chunk_size) + 1
@@ -92,6 +92,17 @@ function Grid:place(x, y, new_value)
     local inner_x = x % self.chunk_size + 1
     local inner_y = y % self.chunk_size + 1
     return self:getChunk(chunk_x, chunk_y):place(inner_x, inner_y, new_value)
+end
+
+---@param x integer
+---@param y integer
+---@param new_value Tile
+function Grid:place(x, y, new_value)
+    for yy = y, y + CONFIG.sizes[new_value] - 1 do
+        for xx = x, x + CONFIG.sizes[new_value] - 1 do
+            self:set(xx, yy, new_value)
+        end
+    end
 end
 
 ---@param camera Camera

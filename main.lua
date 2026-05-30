@@ -37,11 +37,21 @@ function love.draw()
 end
 
 function love.mousemoved(x, y, dx, dy, istouch)
+    hover_tile_x, hover_tile_y = g:getTileCoordinate(c, x, y)
+    if love.mouse.isDown(1) and hover_tile_type then
+        g:place(hover_tile_x, hover_tile_y, hover_tile_type)
+    end
     if love.mouse.isDown(2) then
         c.center_x = c.center_x - dx / c.zoom
         c.center_y = c.center_y - dy / c.zoom
     end
+end
+
+function love.mousereleased(x, y, button, istouch, presses)
     hover_tile_x, hover_tile_y = g:getTileCoordinate(c, x, y)
+    if button == 1 and hover_tile_type then
+        g:place(hover_tile_x, hover_tile_y, hover_tile_type)
+    end
 end
 
 function love.wheelmoved(x, y)
