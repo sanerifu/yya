@@ -1,79 +1,26 @@
-local Grid       = require('Grid')
-local Camera     = require('Camera')
-local inspect    = require('lib.inspect')
-
-local g ---@type Grid
-local c ---@type Camera
-
-local hover_tile_x, hover_tile_y, hover_tile_type
-
-local TILES      = { ---@type Tile[]
-    "empty",
-    "road",
-    "factory",
-    "forest",
-    "anitkabir",
-    "atakule",
-    "cso",
-    "tech_bridge",
-    "house",
-    "grand_national_assembly",
-}
-
-local TILE_PATHS = {} ---@type string[]
-for i = 1, #TILES do
-    TILE_PATHS[i] = ("assets/%s.png"):format(TILES[i])
-end
+local Game = require('Game')
+local g ---@type Game
 
 function love.load()
-    local building_atlas = love.graphics.newArrayImage(TILE_PATHS)
-    g = Grid.new(building_atlas)
-    c = Camera.new()
-    g:generateStartingChunk()
+    g = Game.new(64)
 end
 
 function love.draw()
-    g:draw(c, hover_tile_x, hover_tile_y, hover_tile_type)
+    g:draw()
 end
 
 function love.mousemoved(x, y, dx, dy, istouch)
-    hover_tile_x, hover_tile_y = g:getTileCoordinate(c, x, y)
-    if love.mouse.isDown(1) and hover_tile_type then
-        g:place(hover_tile_x, hover_tile_y, hover_tile_type)
-    end
-    if love.mouse.isDown(2) then
-        c.center_x = c.center_x - dx / c.zoom
-        c.center_y = c.center_y - dy / c.zoom
-    end
+    g:mousemoved(x, y, dx, dy, istouch)
 end
 
 function love.mousereleased(x, y, button, istouch, presses)
-    hover_tile_x, hover_tile_y = g:getTileCoordinate(c, x, y)
-    if button == 1 and hover_tile_type then
-        g:place(hover_tile_x, hover_tile_y, hover_tile_type)
-    end
+    g:mousereleased(x, y, button, istouch, presses)
 end
 
 function love.wheelmoved(x, y)
-    c.zoom = math.max(0.33, math.min(c.zoom * (2 ^ (y * 3e-2)), 3))
+    g:wheelmoved(x, y)
 end
 
 function love.keyreleased(key, scancode, isrepeat)
-    if scancode == "1" then
-        hover_tile_type = "road"
-    elseif scancode == "2" then
-        hover_tile_type = "factory"
-    elseif scancode == "3" then
-        hover_tile_type = "forest"
-    elseif scancode == "4" then
-        hover_tile_type = "anitkabir"
-    elseif scancode == "5" then
-        hover_tile_type = "atakule"
-    elseif scancode == "6" then
-        hover_tile_type = "cso"
-    elseif scancode == "7" then
-        hover_tile_type = "tech_bridge"
-    elseif scancode == "0" then
-        hover_tile_type = nil
-    end
+    g:keyreleased(key, scancode, isrepeat)
 end
