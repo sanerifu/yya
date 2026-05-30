@@ -29,12 +29,12 @@ function Grid.new(atlas, chunk_size)
 end
 
 function Grid:generateStartingChunk()
-    for y = 1, Tile.sizes.grand_national_assembly do
-        for x = 1, Tile.sizes.grand_national_assembly do
+    for y = -2, Tile.sizes.grand_national_assembly - 3 do
+        for x = -2, Tile.sizes.grand_national_assembly - 3 do
             self:set(x, y, "grand_national_assembly")
         end
     end
-    self:set(math.ceil(Tile.sizes.grand_national_assembly / 2), Tile.sizes.grand_national_assembly + 1, 'road')
+    self:set(math.ceil(Tile.sizes.grand_national_assembly / 2) - 3, Tile.sizes.grand_national_assembly - 2, 'road')
 end
 
 ---@param x integer
