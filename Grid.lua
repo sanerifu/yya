@@ -2,6 +2,7 @@ local Chunk = require('Chunk')
 
 local CONFIG = {
     sizes = {
+        empty = 1,
         road = 1,
         factory = 3,
         forest = 3,
@@ -13,6 +14,19 @@ local CONFIG = {
         house = 2,
         grand_national_assembly = 5,
     }, ---@type table<Tile, integer>
+}
+
+local TILE_INDICES = { ---@type table<Tile, integer>
+    empty = 1,
+    road = 2,
+    factory = 3,
+    forest = 4,
+    anitkabir = 5,
+    atakule = 6,
+    cso = 7,
+    tech_bridge = 8,
+    house = 9,
+    grand_national_assembly = 10,
 }
 
 local TILE_SIZE = 16
@@ -80,12 +94,13 @@ function Grid:place(x, y, new_value)
     return self:getChunk(chunk_x, chunk_y):place(inner_x, inner_y, new_value)
 end
 
----@param zoom number
----@param top_left_x integer
----@param top_left_y integer
----@param bottom_right_x integer
----@param bottom_right_y integer
-function Grid:draw(zoom, top_left_x, top_left_y, bottom_right_x, bottom_right_y)
+---@param camera Camera
+---@param hover_tile_x integer?
+---@param hover_tile_y integer?
+---@param hover_tile_type Tile?
+function Grid:draw(camera, hover_tile_x, hover_tile_y, hover_tile_type)
+    local zoom = camera.zoom
+    local top_left_x, top_left_y, bottom_right_x, bottom_right_y = camera:getBoundingBox()
     local top_left_tile_x, top_left_tile_y =
         math.floor(top_left_x / TILE_SIZE), math.floor(top_left_y / TILE_SIZE)
     local bottom_right_tile_x, bottom_right_tile_y =
@@ -95,9 +110,10 @@ function Grid:draw(zoom, top_left_x, top_left_y, bottom_right_x, bottom_right_y)
     local bottom_right_chunk_x, bottom_right_chunk_y =
         math.ceil(bottom_right_tile_x / self.chunk_size), math.ceil(bottom_right_tile_y / self.chunk_size)
 
-    local size = math.floor(self.scaled_chunk_size * zoom)
-    local offset_x = math.floor(top_left_x * zoom)
-    local offset_y = math.floor(top_left_y * zoom)
+    local scaled_tile_size = self.scale * zoom
+    local size = self.scaled_chunk_size * zoom
+    local offset_x = top_left_x * zoom
+    local offset_y = top_left_y * zoom
 
     for y = top_left_chunk_y, bottom_right_chunk_y do
         for x = top_left_chunk_x, bottom_right_chunk_x do
@@ -120,6 +136,40 @@ function Grid:draw(zoom, top_left_x, top_left_y, bottom_right_x, bottom_right_y)
             end
         end
     end
+
+    if hover_tile_x and hover_tile_y and hover_tile_type and CONFIG.sizes[hover_tile_type] then
+        local hover_size = CONFIG.sizes[hover_tile_type]
+        local r, g, b, a = love.graphics.getColor()
+        love.graphics.setColor(1, 1, 1, 0.5)
+        love.graphics.drawLayer(
+            self.atlas,
+            TILE_INDICES[hover_tile_type],
+            scaled_tile_size * (hover_tile_x - 1) - offset_x,
+            scaled_tile_size * (hover_tile_y - 1) - offset_y,
+            0,
+            scaled_tile_size * hover_size,
+            scaled_tile_size * hover_size
+        )
+        love.graphics.setColor(r, g, b, a)
+    end
+end
+
+---@param camera Camera
+---@param x integer
+---@param y integer
+---@return integer tile_x
+---@return integer tile_y
+function Grid:getTileCoordinate(camera, x, y)
+    local zoom = camera.zoom
+    local top_left_x, top_left_y, bottom_right_x, bottom_right_y = camera:getBoundingBox()
+    local size = TILE_SIZE * zoom
+    local offset_x = top_left_x * zoom
+    local offset_y = top_left_y * zoom
+
+    local tile_x = math.floor((x + offset_x) / size + 1)
+    local tile_y = math.floor((y + offset_y) / size + 1)
+
+    return tile_x, tile_y
 end
 
 return Grid
