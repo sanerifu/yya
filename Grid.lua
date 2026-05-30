@@ -61,18 +61,38 @@ function Grid:set(x, y, new_value)
     local chunk_y = math.floor(y / self.chunk_size) + 1
     local inner_x = x % self.chunk_size + 1
     local inner_y = y % self.chunk_size + 1
-    return self:getChunk(chunk_x, chunk_y):place(inner_x, inner_y, new_value)
+    return self:getChunk(chunk_x, chunk_y):set(inner_x, inner_y, new_value)
+end
+
+---@param x integer
+---@param y integer
+---@return Tile
+function Grid:get(x, y)
+    x = x - 1
+    y = y - 1
+    local chunk_x = math.floor(x / self.chunk_size) + 1
+    local chunk_y = math.floor(y / self.chunk_size) + 1
+    local inner_x = x % self.chunk_size + 1
+    local inner_y = y % self.chunk_size + 1
+    return self:getChunk(chunk_x, chunk_y):get(inner_x, inner_y)
 end
 
 ---@param x integer
 ---@param y integer
 ---@param new_value Tile
+---@return boolean is_placed
 function Grid:place(x, y, new_value)
-    for yy = y, y + Tile.sizes[new_value] - 1 do
-        for xx = x, x + Tile.sizes[new_value] - 1 do
+    if not self:isValid(x, y, new_value) then
+        return false
+    end
+    local size = Tile.sizes[new_value]
+    for yy = y, y + size - 1 do
+        for xx = x, x + size - 1 do
             self:set(xx, yy, new_value)
         end
     end
+
+    return true
 end
 
 ---@param camera Camera
@@ -121,7 +141,11 @@ function Grid:draw(camera, hover_tile_x, hover_tile_y, hover_tile_type)
     if hover_tile_x and hover_tile_y and hover_tile_type and Tile.sizes[hover_tile_type] then
         local hover_size = Tile.sizes[hover_tile_type]
         local r, g, b, a = love.graphics.getColor()
-        love.graphics.setColor(1, 1, 1, 0.5)
+        if self:isValid(hover_tile_x, hover_tile_y, hover_tile_type) then
+            love.graphics.setColor(0, 1, 0, 0.5)
+        else
+            love.graphics.setColor(1, 0, 0, 0.5)
+        end
         love.graphics.drawLayer(
             self.atlas,
             Tile.indices[hover_tile_type],
@@ -151,6 +175,25 @@ function Grid:getTileCoordinate(camera, x, y)
     local tile_y = math.floor((y + offset_y) / size + 1)
 
     return tile_x, tile_y
+end
+
+---@param x integer
+---@param y integer
+---@param tile Tile
+---@return boolean
+function Grid:isValid(x, y, tile)
+    assert(Tile.sizes[tile], ("Cannot place tile %q"):format(tile))
+
+    local size = Tile.sizes[tile]
+    for yy = y, y + size - 1 do
+        for xx = x, x + size - 1 do
+            if self:get(xx, yy) ~= "empty" then
+                return false
+            end
+        end
+    end
+
+    return true;
 end
 
 return Grid

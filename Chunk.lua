@@ -65,7 +65,7 @@ end
 ---@param y integer
 ---@param new_value Tile
 ---@return Tile old_value
-function Chunk:place(x, y, new_value)
+function Chunk:set(x, y, new_value)
     assert(Tile.indices[new_value], ("Invalid tile: %q"):format(new_value))
     assert(1 <= x and x <= self.size, ("Out of bounds X: %q"):format(x))
     assert(1 <= y and y <= self.size, ("Out of bounds Y: %q"):format(y))
@@ -83,6 +83,17 @@ function Chunk:place(x, y, new_value)
     )
 
     return old_value
+end
+
+---@param x integer
+---@param y integer
+---@return Tile
+function Chunk:get(x, y)
+    assert(1 <= x and x <= self.size, ("Out of bounds X: %q"):format(x))
+    assert(1 <= y and y <= self.size, ("Out of bounds Y: %q"):format(y))
+
+    local index = flatten(x, y, self.size)
+    return self.grid[index]
 end
 
 function Chunk:getDimensions()
