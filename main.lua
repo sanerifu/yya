@@ -5,8 +5,26 @@ local inspect = require('lib.inspect')
 local g ---@type Grid
 local c ---@type Camera
 
+local TILES = { ---@type Tile[]
+    "empty",
+    "road",
+    "factory",
+    "forest",
+    "anitkabir",
+    "atakule",
+    "cso",
+    "tech_bridge",
+    "house",
+    "grand_national_assembly",
+}
+
+local TILE_PATHS = {} ---@type string[]
+for i=1,#TILES do
+    TILE_PATHS[i] = ("assets/%s.png"):format(TILES[i])
+end
+
 function love.load()
-    local building_atlas = love.graphics.newImage("assets/tiles.png")
+    local building_atlas = love.graphics.newArrayImage(TILE_PATHS)
     g = Grid.new(building_atlas)
     c = Camera.new()
     g:generateStartingChunk()

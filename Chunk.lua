@@ -14,7 +14,20 @@ local function flatten(x, y, width)
     return ret
 end
 
-local TILE_CHECKER = {
+local TILE_INDICES = { ---@type table<Tile, integer>
+    empty = 1,
+    road = 2,
+    factory = 3,
+    forest = 4,
+    anitkabor = 5,
+    atakule = 6,
+    cso = 7,
+    tech_bridge = 8,
+    house = 9,
+    grand_national_assembly = 10,
+}
+
+local TILE_CHECKER = { ---@type table<Tile, boolean>
     empty = true,
     road = true,
     factory = true,
@@ -25,25 +38,22 @@ local TILE_CHECKER = {
     tech_bridge = true,
     house = true,
     grand_national_assembly = true,
-} ---@type table<Tile, boolean>
+}
 
 ---@class Chunk
 local Chunk = {}
 Chunk.__index = Chunk
 
 ---@param atlas love.Image
----@param quads table<Tile, love.Quad>
 ---@param size number?
-function Chunk.new(atlas, quads, size)
+function Chunk.new(atlas, size)
+    local tile_width, tile_height = atlas:getDimensions()
     size = size or 64
-    local _, _, tile_width, tile_height = quads.empty:getViewport()
-
     ---@class Chunk
     local self = {
         size = size,
-        quads = quads,
         grid = table.new(size, 0), ---@type Tile[]
-        counts = { ---@type table<Tile, number>
+        counts = { ---@type table<Tile, integer>
             empty = size * size,
             road = 0,
             factory = 0,
@@ -65,7 +75,7 @@ function Chunk.new(atlas, quads, size)
         for x = 1, size do
             local index = flatten(x, y, self.size)
             self.grid[index] = "empty"
-            self.batch_indices[index] = self.batch:add(quads.empty, tile_width * (x - 1), tile_height * (y - 1))
+            self.batch_indices[index] = self.batch:addLayer(TILE_INDICES.empty, tile_width * (x - 1), tile_height * (y - 1))
         end
     end
     return setmetatable(self, Chunk)
@@ -85,14 +95,18 @@ function Chunk:place(x, y, new_value)
     self.counts[old_value] = self.counts[old_value] - 1
     self.counts[new_value] = self.counts[new_value] + 1
     self.grid[index] = new_value
-    self.batch:set(
+    self.batch:setLayer(
         self.batch_indices[index],
-        self.quads[new_value],
+        TILE_INDICES[new_value],
         self.tile_width * (x - 1),
         self.tile_height * (y - 1)
     )
 
     return old_value
+end
+
+function Chunk:getDimensions()
+    return self.size * self.tile_width, self.size * self.tile_height
 end
 
 return Chunk

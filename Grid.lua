@@ -15,53 +15,6 @@ local CONFIG = {
     }, ---@type table<Tile, integer>
 }
 
-local ATLAS_WIDTH = 16
-local ATLAS_HEIGHT = 16
-
-local TILE_OFFSETS = {
-    x = {
-        empty = 0 / ATLAS_WIDTH,
-        road = 1 / ATLAS_WIDTH,
-        factory = 2 / ATLAS_WIDTH,
-        forest = 3 / ATLAS_WIDTH,
-        anitkabir = 4 / ATLAS_WIDTH,
-        atakule = 5 / ATLAS_WIDTH,
-        cso = 6 / ATLAS_WIDTH,
-        tech_bridge = 7 / ATLAS_WIDTH,
-        house = 8 / ATLAS_WIDTH,
-        grand_national_assembly = 9 / ATLAS_WIDTH,
-    },
-    y = {
-        empty = 0 / ATLAS_HEIGHT,
-        road = 0 / ATLAS_HEIGHT,
-        factory = 0 / ATLAS_HEIGHT,
-        forest = 0 / ATLAS_HEIGHT,
-        anitkabir = 0 / ATLAS_HEIGHT,
-        atakule = 0 / ATLAS_HEIGHT,
-        cso = 0 / ATLAS_HEIGHT,
-        tech_bridge = 0 / ATLAS_HEIGHT,
-        house = 0 / ATLAS_HEIGHT,
-        grand_national_assembly = 0 / ATLAS_HEIGHT,
-    },
-}
-
----@param atlas_width integer
----@param atlas_height integer
----@param atlas_tile_width integer
----@param atlas_tile_height integer
----@param type string
----@return love.Quad
-local function makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, type)
-    return love.graphics.newQuad(
-        TILE_OFFSETS.x[type] * atlas_width,
-        TILE_OFFSETS.y[type] * atlas_height,
-        atlas_tile_width,
-        atlas_tile_height,
-        atlas_width,
-        atlas_height
-    )
-end
-
 local TILE_SIZE = 16
 
 ---@class Grid
@@ -75,24 +28,8 @@ function Grid.new(atlas, chunk_size)
     chunk_size = chunk_size or 64
     assert(chunk_size > 6, "Chunk size too small")
     atlas:setFilter('nearest', 'nearest')
-
-    local atlas_width, atlas_height = atlas:getDimensions()
-    local atlas_tile_width, atlas_tile_height =
-        math.floor(atlas_width / ATLAS_WIDTH), math.floor(atlas_height / ATLAS_HEIGHT)
+    local atlas_tile_width, atlas_tile_height = atlas:getDimensions()
     local scale = TILE_SIZE / atlas_tile_width
-    local quads = { ---@type table<Tile, love.Quad>
-        empty = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'empty'),
-        road = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'road'),
-        factory = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'factory'),
-        forest = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'forest'),
-        anitkabir = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'anitkabir'),
-        atakule = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'atakule'),
-        cso = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'cso'),
-        tech_bridge = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'tech_bridge'),
-        house = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height, 'house'),
-        grand_national_assembly = makeQuad(atlas_width, atlas_height, atlas_tile_width, atlas_tile_height,
-            'grand_national_assembly'),
-    }
 
     ---@class Grid
     local ret = {
@@ -101,8 +38,7 @@ function Grid.new(atlas, chunk_size)
         chunks = {}, ---@type Chunk[][]
         scale = scale,
         scaled_chunk_size = chunk_size * scale,
-        empty_chunk = Chunk.new(atlas, quads, chunk_size),
-        quads = quads,
+        empty_chunk = Chunk.new(atlas, chunk_size),
     }
 
     return setmetatable(ret, Grid)
@@ -125,7 +61,7 @@ function Grid:getChunk(x, y)
         self.chunks[y] = {}
     end
     if not self.chunks[y][x] then
-        self.chunks[y][x] = Chunk.new(self.atlas, self.quads, self.chunk_size)
+        self.chunks[y][x] = Chunk.new(self.atlas, self.chunk_size)
     end
     return self.chunks[y][x]
 end
