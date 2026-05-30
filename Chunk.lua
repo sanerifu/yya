@@ -1,5 +1,7 @@
 require('table.new')
 
+local Tile = require('Tile')
+
 ---@alias Tile "empty" | "road" | "factory" | "forest" | "anitkabir" | "atakule" | "cso" | "tech_bridge" | "house" | "grand_national_assembly"
 
 ---@param x number
@@ -13,32 +15,6 @@ local function flatten(x, y, width)
     ret = ret + 1
     return ret
 end
-
-local TILE_INDICES = { ---@type table<Tile, integer>
-    empty = 1,
-    road = 2,
-    factory = 3,
-    forest = 4,
-    anitkabir = 5,
-    atakule = 6,
-    cso = 7,
-    tech_bridge = 8,
-    house = 9,
-    grand_national_assembly = 10,
-}
-
-local TILE_CHECKER = { ---@type table<Tile, boolean>
-    empty = true,
-    road = true,
-    factory = true,
-    forest = true,
-    anitkabir = true,
-    atakule = true,
-    cso = true,
-    tech_bridge = true,
-    house = true,
-    grand_national_assembly = true,
-}
 
 ---@class Chunk
 local Chunk = {}
@@ -76,7 +52,7 @@ function Chunk.new(atlas, size)
             local index = flatten(x, y, self.size)
             self.grid[index] = "empty"
             self.batch_indices[index] = self.batch:addLayer(
-                TILE_INDICES.empty,
+                Tile.indices.empty,
                 tile_width * (x - 1),
                 tile_height * (y - 1)
             )
@@ -90,7 +66,7 @@ end
 ---@param new_value Tile
 ---@return Tile old_value
 function Chunk:place(x, y, new_value)
-    assert(TILE_CHECKER[new_value], ("Invalid tile: %q"):format(new_value))
+    assert(Tile.indices[new_value], ("Invalid tile: %q"):format(new_value))
     assert(1 <= x and x <= self.size, ("Out of bounds X: %q"):format(x))
     assert(1 <= y and y <= self.size, ("Out of bounds Y: %q"):format(y))
 
@@ -101,7 +77,7 @@ function Chunk:place(x, y, new_value)
     self.grid[index] = new_value
     self.batch:setLayer(
         self.batch_indices[index],
-        TILE_INDICES[new_value],
+        Tile.indices[new_value],
         self.tile_width * (x - 1),
         self.tile_height * (y - 1)
     )
