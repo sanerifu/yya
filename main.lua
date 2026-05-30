@@ -1,11 +1,11 @@
-local Grid = require('Grid')
-local Camera  = require('Camera')
-local inspect = require('lib.inspect')
+local Grid       = require('Grid')
+local Camera     = require('Camera')
+local inspect    = require('lib.inspect')
 
 local g ---@type Grid
 local c ---@type Camera
 
-local TILES = { ---@type Tile[]
+local TILES      = { ---@type Tile[]
     "empty",
     "road",
     "factory",
@@ -19,7 +19,7 @@ local TILES = { ---@type Tile[]
 }
 
 local TILE_PATHS = {} ---@type string[]
-for i=1,#TILES do
+for i = 1, #TILES do
     TILE_PATHS[i] = ("assets/%s.png"):format(TILES[i])
 end
 
@@ -42,5 +42,5 @@ function love.mousemoved(x, y, dx, dy, istouch)
 end
 
 function love.wheelmoved(x, y)
-    c.zoom = math.max(0.33, math.min(c.zoom * (2^(y * 3e-2)), 3))
+    c.zoom = math.max(0.33, math.min(c.zoom * (2 ^ (y * 3e-2)), 3))
 end

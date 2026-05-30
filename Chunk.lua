@@ -75,7 +75,11 @@ function Chunk.new(atlas, size)
         for x = 1, size do
             local index = flatten(x, y, self.size)
             self.grid[index] = "empty"
-            self.batch_indices[index] = self.batch:addLayer(TILE_INDICES.empty, tile_width * (x - 1), tile_height * (y - 1))
+            self.batch_indices[index] = self.batch:addLayer(
+                TILE_INDICES.empty,
+                tile_width * (x - 1),
+                tile_height * (y - 1)
+            )
         end
     end
     return setmetatable(self, Chunk)
