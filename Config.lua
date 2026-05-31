@@ -27,6 +27,18 @@ local Config = {
     },
 
     pixels = 16,
+
+    starting_money = 22000, ---@type number
+
+    costs = { ---@type table<Tile, number>
+        road = 100,
+        factory = 10000,
+        forest = 450,
+        anitkabir = 50000,
+        atakule = 30000,
+        cso = 30000,
+        tech_bridge = 35000,
+    },
 }
 
 for i = 1, #Config.tiles do

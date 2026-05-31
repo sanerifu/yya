@@ -96,10 +96,11 @@ function Grid:place(x, y, new_value)
 end
 
 ---@param camera Camera
+---@param is_hover_buildable boolean
 ---@param hover_tile_x integer?
 ---@param hover_tile_y integer?
 ---@param hover_tile_type Tile?
-function Grid:draw(camera, hover_tile_x, hover_tile_y, hover_tile_type)
+function Grid:draw(camera, is_hover_buildable, hover_tile_x, hover_tile_y, hover_tile_type)
     local zoom = camera.zoom
     local top_left_x, top_left_y, bottom_right_x, bottom_right_y = camera:getBoundingBox()
     local top_left_tile_x, top_left_tile_y =
@@ -141,7 +142,7 @@ function Grid:draw(camera, hover_tile_x, hover_tile_y, hover_tile_type)
     if hover_tile_x and hover_tile_y and hover_tile_type and Config.sizes[hover_tile_type] then
         local hover_size = Config.sizes[hover_tile_type]
         local r, g, b, a = love.graphics.getColor()
-        if self:isValid(hover_tile_x, hover_tile_y, hover_tile_type) then
+        if is_hover_buildable then
             love.graphics.setColor(0, 1, 0, 0.5)
         else
             love.graphics.setColor(1, 0, 0, 0.5)

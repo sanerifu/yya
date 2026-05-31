@@ -24,6 +24,7 @@ function Game.new(chunk_size)
         hover_tile_x = nil, ---@type integer?
         hover_tile_y = nil, ---@type integer?
         hover_tile_type = nil, ---@type Tile?
+        money = Config.starting_money,
     }
 
     self.grid:generateStartingChunk()
@@ -32,13 +33,35 @@ function Game.new(chunk_size)
 end
 
 function Game:draw()
-    self.grid:draw(self.camera, self.hover_tile_x, self.hover_tile_y, self.hover_tile_type)
+    self.grid:draw(self.camera, self:canBuild(), self.hover_tile_x, self.hover_tile_y, self.hover_tile_type)
+end
+
+---@return boolean
+function Game:canBuild()
+    if not self.hover_tile_x or not self.hover_tile_y or not self.hover_tile_type then
+        return false
+    end
+
+    if not self.grid:isValid(self.hover_tile_x, self.hover_tile_y, self.hover_tile_type) then
+        return false
+    end
+
+    if self.money < Config.costs[self.hover_tile_type] then
+        return false
+    end
+
+    return true
+end
+
+function Game:build()
+    self.money = self.money - Config.costs[self.hover_tile_type]
+    self.grid:place(self.hover_tile_x, self.hover_tile_y, self.hover_tile_type)
 end
 
 function Game:mousemoved(x, y, dx, dy, istouch)
     self.hover_tile_x, self.hover_tile_y = self.grid:getTileCoordinate(self.camera, x, y)
-    if love.mouse.isDown(1) and self.hover_tile_type then
-        self.grid:place(self.hover_tile_x, self.hover_tile_y, self.hover_tile_type)
+    if love.mouse.isDown(1) and self:canBuild() then
+        self:build()
     end
     if love.mouse.isDown(2) then
         self.camera.center_x = self.camera.center_x - dx / self.camera.zoom
@@ -48,8 +71,8 @@ end
 
 function Game:mousereleased(x, y, button, istouch, presses)
     self.hover_tile_x, self.hover_tile_y = self.grid:getTileCoordinate(self.camera, x, y)
-    if button == 1 and self.hover_tile_type then
-        self.grid:place(self.hover_tile_x, self.hover_tile_y, self.hover_tile_type)
+    if button == 1 and self:canBuild() then
+        self:build()
     end
 end
 
