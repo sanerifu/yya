@@ -1,14 +1,14 @@
 local Grid = require('Grid')
 local Camera = require('Camera')
-local Tile = require('Tile')
+local Config = require('Config')
 
 ---@class Game
 local Game = {}
 Game.__index = Game
 
 local TILE_PATHS = {} ---@type string[]
-for i = 1, #Tile.tiles do
-    TILE_PATHS[i] = ("assets/%s.png"):format(Tile.tiles[i])
+for i = 1, #Config.tiles do
+    TILE_PATHS[i] = ("assets/%s.png"):format(Config.tiles[i])
 end
 
 ---@param chunk_size integer?

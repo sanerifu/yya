@@ -1,6 +1,6 @@
 require('table.new')
 
-local Tile = require('Tile')
+local Config = require('Config')
 
 ---@alias Tile "empty" | "road" | "factory" | "forest" | "anitkabir" | "atakule" | "cso" | "tech_bridge" | "house" | "grand_national_assembly"
 
@@ -52,7 +52,7 @@ function Chunk.new(atlas, size)
             local index = flatten(x, y, self.size)
             self.grid[index] = "empty"
             self.batch_indices[index] = self.batch:addLayer(
-                Tile.indices.empty,
+                Config.indices.empty,
                 tile_width * (x - 1),
                 tile_height * (y - 1)
             )
@@ -66,7 +66,7 @@ end
 ---@param new_value Tile
 ---@return Tile old_value
 function Chunk:set(x, y, new_value)
-    assert(Tile.indices[new_value], ("Invalid tile: %q"):format(new_value))
+    assert(Config.indices[new_value], ("Invalid tile: %q"):format(new_value))
     assert(1 <= x and x <= self.size, ("Out of bounds X: %q"):format(x))
     assert(1 <= y and y <= self.size, ("Out of bounds Y: %q"):format(y))
 
@@ -77,7 +77,7 @@ function Chunk:set(x, y, new_value)
     self.grid[index] = new_value
     self.batch:setLayer(
         self.batch_indices[index],
-        Tile.indices[new_value],
+        Config.indices[new_value],
         self.tile_width * (x - 1),
         self.tile_height * (y - 1)
     )

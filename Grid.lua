@@ -1,5 +1,5 @@
 local Chunk = require('Chunk')
-local Tile = require('Tile')
+local Config = require('Config')
 
 ---@class Grid
 local Grid = {}
@@ -13,7 +13,7 @@ function Grid.new(atlas, chunk_size)
     assert(chunk_size > 6, "Chunk size too small")
     atlas:setFilter('nearest', 'nearest')
     local atlas_tile_width, atlas_tile_height = atlas:getDimensions()
-    local scale = Tile.pixels / atlas_tile_width
+    local scale = Config.pixels / atlas_tile_width
 
     ---@class Grid
     local ret = {
@@ -29,12 +29,12 @@ function Grid.new(atlas, chunk_size)
 end
 
 function Grid:generateStartingChunk()
-    for y = -2, Tile.sizes.grand_national_assembly - 3 do
-        for x = -2, Tile.sizes.grand_national_assembly - 3 do
+    for y = -2, Config.sizes.grand_national_assembly - 3 do
+        for x = -2, Config.sizes.grand_national_assembly - 3 do
             self:set(x, y, "grand_national_assembly")
         end
     end
-    self:set(math.ceil(Tile.sizes.grand_national_assembly / 2) - 3, Tile.sizes.grand_national_assembly - 2, 'road')
+    self:set(math.ceil(Config.sizes.grand_national_assembly / 2) - 3, Config.sizes.grand_national_assembly - 2, 'road')
 end
 
 ---@param x integer
@@ -85,7 +85,7 @@ function Grid:place(x, y, new_value)
     if not self:isValid(x, y, new_value) then
         return false
     end
-    local size = Tile.sizes[new_value]
+    local size = Config.sizes[new_value]
     for yy = y, y + size - 1 do
         for xx = x, x + size - 1 do
             self:set(xx, yy, new_value)
@@ -103,9 +103,9 @@ function Grid:draw(camera, hover_tile_x, hover_tile_y, hover_tile_type)
     local zoom = camera.zoom
     local top_left_x, top_left_y, bottom_right_x, bottom_right_y = camera:getBoundingBox()
     local top_left_tile_x, top_left_tile_y =
-        math.floor(top_left_x / Tile.pixels), math.floor(top_left_y / Tile.pixels)
+        math.floor(top_left_x / Config.pixels), math.floor(top_left_y / Config.pixels)
     local bottom_right_tile_x, bottom_right_tile_y =
-        math.ceil(bottom_right_x / Tile.pixels), math.ceil(bottom_right_y / Tile.pixels)
+        math.ceil(bottom_right_x / Config.pixels), math.ceil(bottom_right_y / Config.pixels)
     local top_left_chunk_x, top_left_chunk_y =
         math.floor(top_left_tile_x / self.chunk_size), math.floor(top_left_tile_y / self.chunk_size)
     local bottom_right_chunk_x, bottom_right_chunk_y =
@@ -138,8 +138,8 @@ function Grid:draw(camera, hover_tile_x, hover_tile_y, hover_tile_type)
         end
     end
 
-    if hover_tile_x and hover_tile_y and hover_tile_type and Tile.sizes[hover_tile_type] then
-        local hover_size = Tile.sizes[hover_tile_type]
+    if hover_tile_x and hover_tile_y and hover_tile_type and Config.sizes[hover_tile_type] then
+        local hover_size = Config.sizes[hover_tile_type]
         local r, g, b, a = love.graphics.getColor()
         if self:isValid(hover_tile_x, hover_tile_y, hover_tile_type) then
             love.graphics.setColor(0, 1, 0, 0.5)
@@ -148,7 +148,7 @@ function Grid:draw(camera, hover_tile_x, hover_tile_y, hover_tile_type)
         end
         love.graphics.drawLayer(
             self.atlas,
-            Tile.indices[hover_tile_type],
+            Config.indices[hover_tile_type],
             scaled_tile_size * (hover_tile_x - 1) - offset_x,
             scaled_tile_size * (hover_tile_y - 1) - offset_y,
             0,
@@ -167,7 +167,7 @@ end
 function Grid:getTileCoordinate(camera, x, y)
     local zoom = camera.zoom
     local top_left_x, top_left_y, bottom_right_x, bottom_right_y = camera:getBoundingBox()
-    local size = Tile.pixels * zoom
+    local size = Config.pixels * zoom
     local offset_x = top_left_x * zoom
     local offset_y = top_left_y * zoom
 
@@ -182,9 +182,9 @@ end
 ---@param tile Tile
 ---@return boolean
 function Grid:isValid(x, y, tile)
-    assert(Tile.sizes[tile], ("Cannot place tile %q"):format(tile))
+    assert(Config.sizes[tile], ("Cannot place tile %q"):format(tile))
 
-    local size = Tile.sizes[tile]
+    local size = Config.sizes[tile]
     for yy = y, y + size - 1 do
         for xx = x, x + size - 1 do
             if self:get(xx, yy) ~= "empty" then

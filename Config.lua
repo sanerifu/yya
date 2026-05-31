@@ -1,4 +1,4 @@
-local Tile = {
+local Config = {
     tiles = { ---@type Tile[]
         "empty",
         "road",
@@ -29,8 +29,8 @@ local Tile = {
     pixels = 16,
 }
 
-for i = 1, #Tile.tiles do
-    Tile.indices[Tile.tiles[i]] = i
+for i = 1, #Config.tiles do
+    Config.indices[Config.tiles[i]] = i
 end
 
-return Tile
+return Config
