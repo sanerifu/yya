@@ -1,15 +1,11 @@
-local Grid = require('Grid')
-local Camera = require('Camera')
+local Camera = require('Ccamera')
 local Config = require('Config')
 
 ---@class Game
 local Game = {}
 Game.__index = Game
 
-local TILE_PATHS = {} ---@type string[]
-for i = 1, #Config.tiles do
-    TILE_PATHS[i] = ("assets/%s.png"):format(Config.tiles[i])
-end
+
 
 ---@param chunk_size integer?
 function Game.new(chunk_size)
@@ -20,14 +16,20 @@ function Game.new(chunk_size)
     local self = {
         atlas = atlas,
         camera = Camera.new(),
-        grid = Grid.new(atlas, chunk_size),
-        hover_tile_x = nil, ---@type integer?
-        hover_tile_y = nil, ---@type integer?
-        hover_tile_type = nil, ---@type Tile?
+        tiles = {}, ---@type Tile[]
+        chunks = {
+            tile = {}, ---@type integer[]
+            x = {}, ---@type integer[]
+            y = {}, ---@type integer[]
+            batches = {}, ---@type love.SpriteBatch[]
+        },
+        ghost = {
+            x = 0, ---@type integer
+            y = 0, ---@type integer
+            tile = 'empty', ---@type Tile
+        },
         money = Config.starting_money,
     }
-
-    self.grid:generateStartingChunk()
 
     return setmetatable(self, Game)
 end

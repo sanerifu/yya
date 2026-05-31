@@ -1,200 +1,103 @@
-local Chunk = require('Chunk')
-local Config = require('Config')
+local config = require('config')
 
----@class Grid
-local Grid = {}
-Grid.__index = Grid
+local module = {}
 
----@param atlas love.Image
----@param chunk_size integer?
----@return Grid
-function Grid.new(atlas, chunk_size)
-    chunk_size = chunk_size or 64
-    assert(chunk_size > 6, "Chunk size too small")
-    atlas:setFilter('nearest', 'nearest')
-    local atlas_tile_width, atlas_tile_height = atlas:getDimensions()
-    local scale = Config.pixels / atlas_tile_width
-
-    ---@class Grid
-    local ret = {
-        atlas = atlas,
-        chunk_size = chunk_size,
-        chunks = {}, ---@type Chunk[][]
-        scale = scale,
-        scaled_chunk_size = chunk_size * scale,
-        empty_chunk = Chunk.new(atlas, chunk_size),
-    }
-
-    return setmetatable(ret, Grid)
+---@param tiles Tiles
+---@param type Tile
+---@return integer index
+function module.makeTile(tiles, type)
+    table.insert(tiles.type, type)
+    return #tiles.type
 end
 
-function Grid:generateStartingChunk()
-    for y = -2, Config.sizes.grand_national_assembly - 3 do
-        for x = -2, Config.sizes.grand_national_assembly - 3 do
-            self:set(x, y, "grand_national_assembly")
-        end
-    end
-    self:set(math.ceil(Config.sizes.grand_national_assembly / 2) - 3, Config.sizes.grand_national_assembly - 2, 'road')
-end
-
+---@param tiles Tiles
+---@param chunks Chunks
 ---@param x integer
 ---@param y integer
----@return Chunk
-function Grid:getChunk(x, y)
-    if not self.chunks[y] then
-        self.chunks[y] = {}
+---@return integer index
+function module.makeChunk(tiles, chunks, x, y)
+    local tile_index = #tiles.type + 1
+    local total = config.chunk_size * config.chunk_size
+
+    table.insert(chunks.tile, tile_index)
+    table.insert(chunks.dirty, true)
+
+    for _ = 1, total do
+        module.makeTile(tiles, "empty")
     end
-    if not self.chunks[y][x] then
-        self.chunks[y][x] = Chunk.new(self.atlas, self.chunk_size)
+
+    local index = #chunks.tile
+    if not chunks.mapping[y] then
+        chunks.mapping[y] = {}
     end
-    return self.chunks[y][x]
+
+    chunks.mapping[y][x] = index
+
+    return index
 end
 
----@param x integer
----@param y integer
----@param new_value Tile
----@return Tile old_value
-function Grid:set(x, y, new_value)
+---@param x number
+---@param y number
+---@param width number
+---@return number
+local function flatten(x, y, width)
     x = x - 1
     y = y - 1
-    local chunk_x = math.floor(x / self.chunk_size) + 1
-    local chunk_y = math.floor(y / self.chunk_size) + 1
-    local inner_x = x % self.chunk_size + 1
-    local inner_y = y % self.chunk_size + 1
-    return self:getChunk(chunk_x, chunk_y):set(inner_x, inner_y, new_value)
+    local ret = y * width + x
+    ret = ret + 1
+    return ret
 end
 
+---@param tiles Tiles
+---@param chunks Chunks
 ---@param x integer
 ---@param y integer
----@return Tile
-function Grid:get(x, y)
-    x = x - 1
-    y = y - 1
-    local chunk_x = math.floor(x / self.chunk_size) + 1
-    local chunk_y = math.floor(y / self.chunk_size) + 1
-    local inner_x = x % self.chunk_size + 1
-    local inner_y = y % self.chunk_size + 1
-    return self:getChunk(chunk_x, chunk_y):get(inner_x, inner_y)
-end
+---@return integer tile_index
+---@return integer chunk_index
+function module.getTile(tiles, chunks, x, y)
+    local chunk_x, chunk_y =
+        math.floor(x / config.chunk_size), math.floor(y / config.chunk_size)
+    local tile_x, tile_y =
+        x % config.chunk_size, y % config.chunk_size
 
----@param x integer
----@param y integer
----@param new_value Tile
----@return boolean is_placed
-function Grid:place(x, y, new_value)
-    if not self:isValid(x, y, new_value) then
-        return false
-    end
-    local size = Config.sizes[new_value]
-    for yy = y, y + size - 1 do
-        for xx = x, x + size - 1 do
-            self:set(xx, yy, new_value)
-        end
+    if not chunks.mapping[chunk_y] or not chunks.mapping[chunk_y][chunk_x] then
+        module.makeChunk(tiles, chunks, chunk_x, chunk_y)
     end
 
-    return true
+    local chunk_index = chunks.mapping[chunk_y][chunk_x]
+    local tile_start = chunks.tile[chunk_index]
+
+    local flattened = flatten(tile_x, tile_y, config.chunk_size)
+    return tile_start + flattened - 1, chunk_index
 end
 
----@param camera Camera
----@param is_hover_buildable boolean
----@param hover_tile_x integer?
----@param hover_tile_y integer?
----@param hover_tile_type Tile?
-function Grid:draw(camera, is_hover_buildable, hover_tile_x, hover_tile_y, hover_tile_type)
-    local zoom = camera.zoom
-    local top_left_x, top_left_y, bottom_right_x, bottom_right_y = camera:getBoundingBox()
-    local top_left_tile_x, top_left_tile_y =
-        math.floor(top_left_x / Config.pixels), math.floor(top_left_y / Config.pixels)
-    local bottom_right_tile_x, bottom_right_tile_y =
-        math.ceil(bottom_right_x / Config.pixels), math.ceil(bottom_right_y / Config.pixels)
-    local top_left_chunk_x, top_left_chunk_y =
-        math.floor(top_left_tile_x / self.chunk_size), math.floor(top_left_tile_y / self.chunk_size)
-    local bottom_right_chunk_x, bottom_right_chunk_y =
-        math.ceil(bottom_right_tile_x / self.chunk_size), math.ceil(bottom_right_tile_y / self.chunk_size)
-
-    local scaled_tile_size = self.scale * zoom
-    local size = self.scaled_chunk_size * zoom
-    local offset_x = top_left_x * zoom
-    local offset_y = top_left_y * zoom
-
-    for y = top_left_chunk_y, bottom_right_chunk_y do
-        for x = top_left_chunk_x, bottom_right_chunk_x do
-            if self.chunks[y] and self.chunks[y][x] then
-                love.graphics.draw(
-                    self.chunks[y][x].batch,
-                    size * (x - 1) - offset_x,
-                    size * (y - 1) - offset_y,
-                    0,
-                    self.scale * zoom
-                )
-            else
-                love.graphics.draw(
-                    self.empty_chunk.batch,
-                    size * (x - 1) - offset_x,
-                    size * (y - 1) - offset_y,
-                    0,
-                    self.scale * zoom
-                )
-            end
-        end
-    end
-
-    if hover_tile_x and hover_tile_y and hover_tile_type and Config.sizes[hover_tile_type] then
-        local hover_size = Config.sizes[hover_tile_type]
-        local r, g, b, a = love.graphics.getColor()
-        if is_hover_buildable then
-            love.graphics.setColor(0, 1, 0, 0.5)
-        else
-            love.graphics.setColor(1, 0, 0, 0.5)
-        end
-        love.graphics.drawLayer(
-            self.atlas,
-            Config.indices[hover_tile_type],
-            scaled_tile_size * (hover_tile_x - 1) - offset_x,
-            scaled_tile_size * (hover_tile_y - 1) - offset_y,
-            0,
-            scaled_tile_size * hover_size,
-            scaled_tile_size * hover_size
-        )
-        love.graphics.setColor(r, g, b, a)
-    end
-end
-
----@param camera Camera
----@param x integer
----@param y integer
----@return integer tile_x
----@return integer tile_y
-function Grid:getTileCoordinate(camera, x, y)
-    local zoom = camera.zoom
-    local top_left_x, top_left_y, bottom_right_x, bottom_right_y = camera:getBoundingBox()
-    local size = Config.pixels * zoom
-    local offset_x = top_left_x * zoom
-    local offset_y = top_left_y * zoom
-
-    local tile_x = math.floor((x + offset_x) / size + 1)
-    local tile_y = math.floor((y + offset_y) / size + 1)
-
-    return tile_x, tile_y
-end
-
+---@param tiles Tiles
+---@param chunks Chunks
 ---@param x integer
 ---@param y integer
 ---@param tile Tile
----@return boolean
-function Grid:isValid(x, y, tile)
-    assert(Config.sizes[tile], ("Cannot place tile %q"):format(tile))
+---@return Tile old_tile
+function module.setTile(tiles, chunks, x, y, tile)
+    local tile_index, chunk_index = module.getTile(tiles, chunks, x, y)
 
-    local size = Config.sizes[tile]
-    for yy = y, y + size - 1 do
-        for xx = x, x + size - 1 do
-            if self:get(xx, yy) ~= "empty" then
-                return false
-            end
-        end
-    end
-
-    return true;
+    local old_tile = tiles.type[tile_index]
+    tiles.type[tile_index] = tile
+    chunks.dirty[chunk_index] = true
+    return old_tile
 end
 
-return Grid
+---@param tiles Tiles
+---@param chunks Chunks
+---@param x integer
+---@param y integer
+---@param building Tile
+function module.placeBuilding(tiles, chunks, x, y, building)
+    local size = config.sizes[building]
+    for yy = y, y + size - 1 do
+        for xx = x, x + size - 1 do
+            module.setTile(tiles, chunks, xx, yy, building)
+        end
+    end
+end
+
+return module

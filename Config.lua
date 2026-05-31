@@ -1,4 +1,6 @@
 local Config = {
+    asset_path = "assets/",
+
     tiles = { ---@type Tile[]
         "empty",
         "road",
@@ -39,6 +41,8 @@ local Config = {
         cso = 30000,
         tech_bridge = 35000,
     },
+
+    chunk_size = 64, ---@type integer
 }
 
 for i = 1, #Config.tiles do
