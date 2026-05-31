@@ -60,7 +60,7 @@ end
 
 function Game:mousemoved(x, y, dx, dy, istouch)
     self.hover_tile_x, self.hover_tile_y = self.grid:getTileCoordinate(self.camera, x, y)
-    if love.mouse.isDown(1) and self:canBuild() then
+    if love.mouse.isDown(1) and self.hover_tile_type == "road" and self:canBuild() then
         self:build()
     end
     if love.mouse.isDown(2) then
