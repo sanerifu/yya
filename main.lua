@@ -1,13 +1,28 @@
 ---@alias TileType "empty" | "road" | "factory" | "forest" | "anitkabir" | "cso" | "atakule" | "techbridge"
 
+local bit = require('bit')
+
 ---@class Game
 local Game = {}
 Game.__index = Game
 
+---@param sizes table<TileType, any>
+---@return table<TileType, integer>
+local function calculateBuildableFlags(sizes)
+    local ret = {}
+    local shift = 0
+    for k, v in pairs(sizes) do
+        sizes[k] = bit.lshift(1, shift)
+        shift = shift + 1
+    end
+    return ret
+end
+
 function Game.new()
+    local defines = require('defines')
     ---@class Game
     local self = {
-        defines = require('defines'),
+        defines = defines,
 
         tiles = {
             length = 0,
@@ -23,6 +38,7 @@ function Game.new()
         },
 
         chunk_mapping = {}, ---@type integer[][]
+        buildables = calculateBuildableFlags(defines)
     }
     return setmetatable(self, Game)
 end
@@ -68,7 +84,81 @@ function Game:getTileIndex(x, y)
     return local_index
 end
 
-local game
+---@param x integer
+---@param y integer
+---@param tile TileType
+---@return boolean
+function Game:checkEmpty(x, y, tile)
+    local size = self.defines.TILE_SIZES[tile]
+    for yy = y, y + size - 1 do
+        for xx = x, x + size - 1 do
+            local id = self:getTileIndex(xx, yy)
+            if self.tiles.type[id] ~= "empty" then
+                return false
+            end
+        end
+    end
+    return true
+end
+
+---@param x integer
+---@param y integer
+---@return integer buildables
+---@return integer id
+function Game:getFittingBuildables(x, y)
+    local buildables = 0
+    local id = self:getTileIndex(x, y)
+    if self.tiles.type[id] ~= "empty" then
+        for k, v in pairs(self.buildables) do
+            if self:checkEmpty(x, y, k) then
+                buildables = bit.bor(buildables, v)
+            end
+        end
+    end
+    return buildables, id
+end
+
+---@param x integer
+---@param y integer
+---@param tile TileType
+function Game:calculateBuildable(x, y, tile)
+    local size = self.defines.TILE_SIZES[tile]
+    for yy = y, y + size - 1 do
+        for xx = x, x + size - 1 do
+            local id = self:getTileIndex(xx, yy)
+            self.tiles.buildable[id] = 0
+        end
+    end
+    local top_y = y - 1
+    local bot_y = y + size
+    local left_x = x - 1
+    local right_x = x + size
+    if tile == "road" then
+        for xx = x - 1, x + size do
+            local buildables, id = self:getFittingBuildables(xx, top_y)
+            self.buildables[id] = buildables
+            buildables, id = self:getFittingBuildables(xx, bot_y)
+            self.buildables[id] = buildables
+        end
+        for yy = y - 1, y + size do
+            local buildables, id = self:getFittingBuildables(left_x, yy)
+            self.buildables[id] = buildables
+            buildables, id = self:getFittingBuildables(right_x, yy)
+            self.buildables[id] = buildables
+        end
+    end
+end
+
+---@param x integer
+---@param y integer
+---@param tile TileType
+function Game:placeTile(x, y, tile)
+    local tile_id = self:getTileIndex(x, y)
+    self.tiles.type[tile_id] = tile
+    self:calculateBuildable(x, y, tile)
+end
+
+local game ---@type Game
 
 function love.load()
     game = Game.new()
