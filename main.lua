@@ -1,19 +1,30 @@
----@alias TileType "empty" | "road" | "factory" | "forest" | "anitkabir" | "cso" | "atakule" | "techbridge"
-
 local bit = require('bit')
+local inspect = require('inspect')
+
+---@alias TileType "empty" | "road" | "factory" | "forest" | "anitkabir" | "cso" | "atakule" | "techbridge"
 
 ---@class Game
 local Game = {}
 Game.__index = Game
 
----@param sizes table<TileType, any>
+---@param tiles table<TileType, any>
 ---@return table<TileType, integer>
-local function calculateBuildableFlags(sizes)
+local function calculateBuildableFlags(tiles)
     local ret = {}
     local shift = 0
-    for k, v in pairs(sizes) do
-        sizes[k] = bit.lshift(1, shift)
+    for tile in pairs(tiles) do
+        ret[tile] = bit.lshift(1, shift)
         shift = shift + 1
+    end
+    return ret
+end
+
+---@param tiles table<TileType, any>
+---@return table<TileType, love.Image>
+local function loadSprites(tiles)
+    local ret = {}
+    for tile in pairs(tiles) do
+        ret[tile] = love.graphics.newImage(("assets/%s.png"):format(tile))
     end
     return ret
 end
@@ -38,7 +49,8 @@ function Game.new()
         },
 
         chunk_mapping = {}, ---@type integer[][]
-        buildables = calculateBuildableFlags(defines)
+        buildables = calculateBuildableFlags(defines.TILE_SIZES),
+        sprites = loadSprites(defines.TILE_SIZES),
     }
     return setmetatable(self, Game)
 end
@@ -162,6 +174,7 @@ local game ---@type Game
 
 function love.load()
     game = Game.new()
+    print(inspect(game))
 end
 
 function love.update(dt)

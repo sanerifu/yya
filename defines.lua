@@ -8,5 +8,6 @@ return {
         cso = 5,
         atakule = 5,
         techbridge = 5,
+        grand_national_assembly = 7,
     }, ---@type table<TileType, integer>
 }
