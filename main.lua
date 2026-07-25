@@ -8,32 +8,84 @@ local Game = {}
 Game.__index = Game
 
 ---@param tiles table<TileType, any>
+---@return TileType[], table<TileType, integer>
+local function createTileArray(tiles)
+    local ret = {}
+    local indices = {}
+    for tile in pairs(tiles) do
+        table.insert(ret, tile)
+        indices[tile] = #ret
+    end
+    return ret, indices
+end
+
+---@param tiles TileType[]
 ---@return table<TileType, integer>
 local function calculateBuildableFlags(tiles)
     local ret = {}
-    local shift = 0
-    for tile in pairs(tiles) do
-        ret[tile] = bit.lshift(1, shift)
-        shift = shift + 1
+    for i = 1, #tiles do
+        local tile = tiles[i]
+        ret[tile] = bit.lshift(1, i - 1)
     end
     return ret
 end
 
----@param tiles table<TileType, any>
----@return table<TileType, love.Image>
+---@param tiles TileType[]
+---@return love.Image
 local function loadSprites(tiles)
-    local ret = {}
-    for tile in pairs(tiles) do
-        ret[tile] = love.graphics.newImage(("assets/%s.png"):format(tile))
+    local images = {} ---@type love.ImageData[]
+    local width, height
+    for i = 1, #tiles do
+        local tile = tiles[i]
+        table.insert(images, love.image.newImageData(("assets/%s.png"):format(tile)))
+        width, height = images[#images]:getDimensions()
+    end
+
+    table.insert(images, love.image.newImageData(width, height))
+
+    local ret = love.graphics.newArrayImage(images)
+    return ret
+end
+
+---@param defines any
+---@param sprites love.Image
+---@param tile_indices table<TileType, integer>
+---@param tile_scale number
+local function generateChunkSprite(defines, sprites, tile_indices, tile_scale)
+    local ret = love.graphics.newSpriteBatch(sprites, defines.CHUNK_SIZE * defines.CHUNK_SIZE, "static")
+    for y = 1, defines.CHUNK_SIZE do
+        for x = 1, defines.CHUNK_SIZE do
+            ret:addLayer(
+                tile_indices["empty"],
+                defines.TILE_PIXEL_SIZE * (x - 1),
+                defines.TILE_PIXEL_SIZE * (y - 1),
+                0,
+                tile_scale * defines.TILE_SIZES["empty"]
+            )
+        end
     end
     return ret
 end
 
 function Game.new()
     local defines = require('defines')
+    local tile_array, tile_indices = createTileArray(defines.TILE_SIZES)
+    local sprites = loadSprites(tile_array)
+    local sprite_width, sprite_height = sprites:getDimensions()
+    assert(sprite_width == sprite_height, "Tile assets must be square!")
+    local tile_scale = defines.TILE_PIXEL_SIZE / sprite_width
+
     ---@class Game
     local self = {
         defines = defines,
+        tile_array = tile_array,
+        tile_indices = tile_indices,
+        tile_scale = tile_scale,
+        empty_chunk = generateChunkSprite(defines, sprites, tile_indices, tile_scale),
+
+        chunk_mapping = {}, ---@type integer[][]
+        buildables = calculateBuildableFlags(tile_array),
+        sprites = sprites,
 
         tiles = {
             length = 0,
@@ -44,13 +96,10 @@ function Game.new()
         chunks = {
             length = 0,
             start = {}, ---@type integer[]
+            sprites = {}, ---@type love.SpriteBatch[]
             x = {}, ---@type integer[]
             y = {}, ---@type integer[]
         },
-
-        chunk_mapping = {}, ---@type integer[][]
-        buildables = calculateBuildableFlags(defines.TILE_SIZES),
-        sprites = loadSprites(defines.TILE_SIZES),
     }
     return setmetatable(self, Game)
 end
@@ -72,6 +121,7 @@ function Game:getChunk(x, y)
     self.tiles.length = self.tiles.length + chunk_size
     self.chunks.length = self.chunks.length + 1
     table.insert(self.chunks.start, chunk_start)
+    table.insert(self.chunks.sprites, generateChunkSprite(self.defines, self.sprites, self.tile_indices, self.tile_scale))
     table.insert(self.chunks.x, x)
     table.insert(self.chunks.y, y)
     self.chunk_mapping[y] = self.chunk_mapping[y] or {}
@@ -181,4 +231,5 @@ function love.update(dt)
 end
 
 function love.draw()
+    love.graphics.draw(game.empty_chunk)
 end

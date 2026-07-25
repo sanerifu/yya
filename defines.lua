@@ -1,6 +1,8 @@
 return {
     CHUNK_SIZE = 32,
+    TILE_PIXEL_SIZE = 16,
     TILE_SIZES = {
+        empty = 1,
         road = 1,
         factory = 3,
         forest = 1,
