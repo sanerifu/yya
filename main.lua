@@ -106,6 +106,17 @@ end
 
 ---@param x integer
 ---@param y integer
+---@return integer?
+function Game:checkChunk(x, y)
+    if self.chunk_mapping[y] and self.chunk_mapping[y][x] then
+        return self.chunk_mapping[y][x]
+    else
+        return nil
+    end
+end
+
+---@param x integer
+---@param y integer
 ---@return integer
 function Game:getChunk(x, y)
     if self.chunk_mapping[y] and self.chunk_mapping[y][x] then
@@ -231,5 +242,15 @@ function love.update(dt)
 end
 
 function love.draw()
-    love.graphics.draw(game.empty_chunk)
+    local window_width, window_height = love.graphics.getDimensions()
+    local chunk_pixel_size = game.defines.TILE_PIXEL_SIZE * game.defines.CHUNK_SIZE
+    local hor_chunks, ver_chunks = math.ceil(window_width / chunk_pixel_size) + 1, math.ceil(window_height / chunk_pixel_size) + 1
+    local x, y = 0, 0
+    for yy = 0, ver_chunks - 1 do
+        for xx = 0, hor_chunks - 1 do
+            local chunk_index = game:checkChunk(x + xx, y + yy)
+            local sprite = chunk_index and game.chunks.sprites[chunk_index] or game.empty_chunk
+            love.graphics.draw(sprite, xx * chunk_pixel_size, yy * chunk_pixel_size)
+        end
+    end
 end
