@@ -143,7 +143,10 @@ end
 
 ---@param x integer
 ---@param y integer
----@return integer
+---@return integer global_index Index of tile inside self.tiles arrays
+---@return integer chunk_index Index of chunk inside self.chunks arrays
+---@return integer local_x 0-based x of tile within the chunk
+---@return integer local_y 0-based y of tile within the chunk
 function Game:getTileIndex(x, y)
     local chunk_x = math.floor(x / self.defines.CHUNK_SIZE)
     local chunk_y = math.floor(y / self.defines.CHUNK_SIZE)
@@ -152,9 +155,10 @@ function Game:getTileIndex(x, y)
     local local_y = y % self.defines.CHUNK_SIZE
 
     local chunk_index = self:getChunk(chunk_x, chunk_y)
-    local local_index = self.chunks.start[chunk_index] + (local_y * self.defines.CHUNK_SIZE) + local_x
+    local local_index = (local_y * self.defines.CHUNK_SIZE) + local_x
+    local global_index = self.chunks.start[chunk_index] + local_index
 
-    return local_index
+    return global_index, chunk_index, local_x, local_y
 end
 
 ---@param x integer
@@ -209,15 +213,15 @@ function Game:calculateBuildable(x, y, tile)
     if tile == "road" then
         for xx = x - 1, x + size do
             local buildables, id = self:getFittingBuildables(xx, top_y)
-            self.buildables[id] = buildables
+            self.tiles.buildable[id] = buildables
             buildables, id = self:getFittingBuildables(xx, bot_y)
-            self.buildables[id] = buildables
+            self.tiles.buildable[id] = buildables
         end
         for yy = y - 1, y + size do
             local buildables, id = self:getFittingBuildables(left_x, yy)
-            self.buildables[id] = buildables
+            self.tiles.buildable[id] = buildables
             buildables, id = self:getFittingBuildables(right_x, yy)
-            self.buildables[id] = buildables
+            self.tiles.buildable[id] = buildables
         end
     end
 end
@@ -226,25 +230,61 @@ end
 ---@param y integer
 ---@param tile TileType
 function Game:placeTile(x, y, tile)
-    local tile_id = self:getTileIndex(x, y)
-    self.tiles.type[tile_id] = tile
+    local tile_index, chunk_index, local_x, local_y = self:getTileIndex(x, y)
+    self.tiles.type[tile_index] = tile
     self:calculateBuildable(x, y, tile)
+    local size = self.defines.CHUNK_SIZE
+    local tile_size = self.defines.TILE_SIZES[tile]
+    for yy = y, y + tile_size - 1 do
+        for xx = x, x + tile_size - 1 do
+            local tile_index, chunk_index, local_x, local_y = self:getTileIndex(xx, yy)
+            local local_index = (local_y * size) + local_x
+            self.chunks.sprites[chunk_index]:setLayer(
+                local_index + 1,
+                #self.tile_array + 1,
+                (local_x ) * self.defines.TILE_PIXEL_SIZE,
+                (local_y ) * self.defines.TILE_PIXEL_SIZE,
+                0,
+                self.tile_scale
+            )
+        end
+    end
+    local local_index = (local_y * size) + local_x
+    print("Tile index", self.tile_indices[tile])
+    print("Empty index", #self.tile_array + 1)
+    self.chunks.sprites[chunk_index]:setLayer(
+        local_index + 1,
+        self.tile_indices[tile],
+        (local_x) * self.defines.TILE_PIXEL_SIZE,
+        (local_y) * self.defines.TILE_PIXEL_SIZE,
+        0,
+        tile_size * self.tile_scale
+    )
 end
 
 local game ---@type Game
 
 function love.load()
     game = Game.new()
-    print(inspect(game))
 end
 
 function love.update(dt)
 end
 
+function love.mousereleased(x, y, button)
+    if button == 1 then
+        local map_x, map_y = x, y
+        local tile_x, tile_y = math.floor(map_x / game.defines.TILE_PIXEL_SIZE),
+            math.floor(map_y / game.defines.TILE_PIXEL_SIZE)
+        game:placeTile(tile_x, tile_y, "factory")
+    end
+end
+
 function love.draw()
     local window_width, window_height = love.graphics.getDimensions()
     local chunk_pixel_size = game.defines.TILE_PIXEL_SIZE * game.defines.CHUNK_SIZE
-    local hor_chunks, ver_chunks = math.ceil(window_width / chunk_pixel_size) + 1, math.ceil(window_height / chunk_pixel_size) + 1
+    local hor_chunks, ver_chunks = math.ceil(window_width / chunk_pixel_size) + 1,
+        math.ceil(window_height / chunk_pixel_size) + 1
     local x, y = 0, 0
     for yy = 0, ver_chunks - 1 do
         for xx = 0, hor_chunks - 1 do
