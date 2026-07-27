@@ -263,6 +263,11 @@ function Game:placeTile(x, y, tile)
 end
 
 local game ---@type Game
+local camera = {
+    x = 0,
+    y = 0,
+    panning = false,
+}
 
 function love.load()
     game = Game.new()
@@ -271,12 +276,27 @@ end
 function love.update(dt)
 end
 
+function love.mousepressed(x, y, button)
+    if button == 2 then
+        camera.panning = true
+    end
+end
+
 function love.mousereleased(x, y, button)
     if button == 1 then
-        local map_x, map_y = x, y
+        local map_x, map_y = x + camera.x, y + camera.y
         local tile_x, tile_y = math.floor(map_x / game.defines.TILE_PIXEL_SIZE),
             math.floor(map_y / game.defines.TILE_PIXEL_SIZE)
         game:placeTile(tile_x, tile_y, "factory")
+    elseif button == 2 then
+        camera.panning = false
+    end
+end
+
+function love.mousemoved(x, y, dx, dy, istouch)
+    if camera.panning then
+        camera.x = camera.x - dx
+        camera.y = camera.y - dy
     end
 end
 
@@ -285,12 +305,15 @@ function love.draw()
     local chunk_pixel_size = game.defines.TILE_PIXEL_SIZE * game.defines.CHUNK_SIZE
     local hor_chunks, ver_chunks = math.ceil(window_width / chunk_pixel_size) + 1,
         math.ceil(window_height / chunk_pixel_size) + 1
-    local x, y = 0, 0
+    local x, y = math.floor(camera.x / chunk_pixel_size), math.floor(camera.y / chunk_pixel_size)
+    local offset_x, offset_y = camera.x % chunk_pixel_size, camera.y % chunk_pixel_size
+    print("Rendering")
     for yy = 0, ver_chunks - 1 do
         for xx = 0, hor_chunks - 1 do
             local chunk_index = game:checkChunk(x + xx, y + yy)
             local sprite = chunk_index and game.chunks.sprites[chunk_index] or game.empty_chunk
-            love.graphics.draw(sprite, xx * chunk_pixel_size, yy * chunk_pixel_size)
+            love.graphics.draw(sprite, xx * chunk_pixel_size - offset_x, yy * chunk_pixel_size - offset_y)
+            print(x + xx, y + yy)
         end
     end
 end
